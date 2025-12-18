@@ -5,26 +5,25 @@ import com.example.freight.enums.CarrierType;
 import com.example.freight.enums.DeliveryMode;
 import com.example.freight.strategy.DeliveryTimeStrategy;
 import com.example.freight.strategy.FreightStrategy;
+import com.example.freight.util.Money;
+import com.example.freight.util.WeightCalculator;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 @Component("DEFAULT")
 public class DefaultFreightStrategy implements FreightStrategy, DeliveryTimeStrategy {
 
     @Override
     public BigDecimal calculate(FreightRequest request, double distanceKm) {
+        double cubic = WeightCalculator.cubicWeight(request.height(), request.width(), request.length());
+        double charged = WeightCalculator.chargedWeight(request.weight(), cubic);
 
-        double cubicWeight = (request.height() * request.width() * request.length()) / 6000.0;
-        double chargedWeight = Math.max(request.weight(), cubicWeight);
-
-        BigDecimal weightCost = BigDecimal.valueOf(chargedWeight * 1.5);
-        BigDecimal distanceCost = BigDecimal.valueOf(distanceKm / 100.0 * 2.0);
+        BigDecimal weightCost = BigDecimal.valueOf(charged * 1.5);
+        BigDecimal distanceCost = BigDecimal.valueOf((distanceKm / 100.0) * 2.0);
 
         BigDecimal base = weightCost.add(distanceCost);
-
-        return base.setScale(2, RoundingMode.HALF_UP);
+        return Money.round2(base);
     }
 
     @Override

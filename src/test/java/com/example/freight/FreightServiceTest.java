@@ -22,7 +22,7 @@ class FreightServiceTest {
 
     private final DistanceService distanceService = mock(DistanceService.class);
     private final FreightStrategyFactory factory = mock(FreightStrategyFactory.class);
-    private final FreightService service = new FreightService(factory, distanceService, List.of());
+    private final FreightService service = new FreightService(factory, distanceService);
 
     @Test
     void shouldCalculateFreightAndDeliveryTimeFast() {

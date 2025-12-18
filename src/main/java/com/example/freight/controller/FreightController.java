@@ -26,12 +26,13 @@ public class FreightController {
         FreightResult result = freightService.calculateFreight(request);
 
         return ResponseEntity.ok(new FreightResponse(
-                result.totalCost(),
+                result.finalCost(),
                 request.carrier() != null ? request.carrier().name() : "DEFAULT",
                 request.deliveryMode() != null ? request.deliveryMode().name() : "NORMAL",
                 result.minDeliveryDays(),
                 result.maxDeliveryDays(),
-                result.deliveryDate(),
+                result.estimatedDeliveryDate(),
+                result.insuranceCost() != null ? result.insuranceCost().toString() : null,
                 "Cálculo realizado com sucesso"
         ));
     }

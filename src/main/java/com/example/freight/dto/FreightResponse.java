@@ -10,5 +10,6 @@ public record FreightResponse(
         int minDeliveryDays,
         int maxDeliveryDays,
         LocalDate deliveryDate,
+        String insuranceCost,
         String message
 ) {}

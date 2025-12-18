@@ -5,29 +5,73 @@ import com.example.freight.enums.CarrierType;
 import com.example.freight.enums.DeliveryMode;
 import com.example.freight.strategy.DeliveryTimeStrategy;
 import com.example.freight.strategy.FreightStrategy;
+import com.example.freight.util.Money;
+import com.example.freight.util.WeightCalculator;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 @Component("JADLOG")
 public class JadlogStrategy implements FreightStrategy, DeliveryTimeStrategy {
 
+    private static final double LARGE_DIMENSION_THRESHOLD_CM = 100.0;
+    private static final double LARGE_DIMENSION_SURCHARGE_PERCENT = 0.20;
+    private static final double LARGE_VOLUME_LITERS_THRESHOLD = 150.0;
+    private static final double LARGE_VOLUME_MULTIPLIER = 1.20;
+
     @Override
     public BigDecimal calculate(FreightRequest request, double distanceKm) {
-        BigDecimal base = request.deliveryMode() == DeliveryMode.FAST
-                ? BigDecimal.valueOf(45.0)
-                : BigDecimal.valueOf(25.0);
+        double cubic = WeightCalculator.cubicWeight(request.height(), request.width(), request.length());
+        double charged = WeightCalculator.chargedWeight(request.weight(), cubic);
 
-        double cubicWeight = (request.height() * request.width() * request.length()) / 6000.0;
-        double chargedWeight = Math.max(request.weight(), cubicWeight);
+        if (request.deliveryMode() == DeliveryMode.FAST) {
+            BigDecimal base = BigDecimal.valueOf(45.0);
+            base = base.add(BigDecimal.valueOf(charged * 2.5));
+            base = base.add(BigDecimal.valueOf((distanceKm / 100.0) * 0.4));
+            base = applyDimensionalSurcharges(base, request, charged);
+            return Money.round2(base);
+        } else {
+            double costPerKm = getCostPerKm(distanceKm);
+            BigDecimal base = BigDecimal.valueOf(distanceKm * costPerKm * Math.max(1.0, charged));
+            base = applyDimensionalSurcharges(base, request, charged);
+            return Money.round2(base);
+        }
+    }
 
-        base = base.add(BigDecimal.valueOf(chargedWeight * 2.5));
+    private BigDecimal applyDimensionalSurcharges(BigDecimal base, FreightRequest request, double chargedWeight) {
+        double length = request.length();
+        double height = request.height();
+        double width = request.width();
 
-        BigDecimal distanceCost = BigDecimal.valueOf((distanceKm / 100.0) * 0.4);
-        base = base.add(distanceCost);
+        if (length > LARGE_DIMENSION_THRESHOLD_CM ||
+                height > LARGE_DIMENSION_THRESHOLD_CM ||
+                width > LARGE_DIMENSION_THRESHOLD_CM) {
+            base = base.add(base.multiply(BigDecimal.valueOf(LARGE_DIMENSION_SURCHARGE_PERCENT)));
+        }
 
-        return base.setScale(2, RoundingMode.HALF_UP);
+        double volumeLiters = WeightCalculator.volumeLiters(height, width, length);
+        if (volumeLiters > LARGE_VOLUME_LITERS_THRESHOLD) {
+            base = base.multiply(BigDecimal.valueOf(LARGE_VOLUME_MULTIPLIER));
+        }
+
+        if (chargedWeight > 50.0) {
+            base = base.add(base.multiply(BigDecimal.valueOf(0.08)));
+        }
+
+        return base;
+    }
+
+    private double getCostPerKm(double km) {
+        if (km <= 500) return 0.07;
+        if (km <= 1000) return 0.05;
+        if (km <= 1500) return 0.04;
+        if (km <= 2000) return 0.04;
+        if (km <= 2500) return 0.03;
+        if (km <= 3000) return 0.03;
+        if (km <= 3500) return 0.02;
+        if (km <= 4000) return 0.02;
+        if (km <= 4500) return 0.02;
+        return 0.02;
     }
 
     @Override
@@ -41,13 +85,16 @@ public class JadlogStrategy implements FreightStrategy, DeliveryTimeStrategy {
             else if (distanceKm <= 5000) return 6;
             else return 7;
         } else {
-            if (distanceKm <= 500) return 3;
-            else if (distanceKm <= 1000) return 5;
-            else if (distanceKm <= 2000) return 7;
-            else if (distanceKm <= 3000) return 9;
-            else if (distanceKm <= 4000) return 11;
-            else if (distanceKm <= 5000) return 13;
-            else return 15;
+            if (distanceKm <= 500) return 4;
+            else if (distanceKm <= 1000) return 6;
+            else if (distanceKm <= 1500) return 9;
+            else if (distanceKm <= 2000) return 12;
+            else if (distanceKm <= 2500) return 15;
+            else if (distanceKm <= 3000) return 18;
+            else if (distanceKm <= 3500) return 22;
+            else if (distanceKm <= 4000) return 25;
+            else if (distanceKm <= 4500) return 30;
+            else return 35;
         }
     }
 
