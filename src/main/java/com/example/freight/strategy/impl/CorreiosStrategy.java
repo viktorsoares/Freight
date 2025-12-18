@@ -25,10 +25,10 @@ public class CorreiosStrategy implements FreightStrategy, DeliveryTimeStrategy {
         double cubic = WeightCalculator.cubicWeight(request.height(), request.width(), request.length());
         double charged = WeightCalculator.chargedWeight(request.weight(), cubic);
 
-        if (request.deliveryMode() == DeliveryMode.FAST) {
+        if (request.deliveryMode() == DeliveryMode.NORMAL) {
             BigDecimal base = BigDecimal.valueOf(50.0);
-            base = base.add(BigDecimal.valueOf(charged * 2.0)); // R$/kg
-            base = base.add(BigDecimal.valueOf((distanceKm / 100.0) * 0.5)); // R$/100km
+            base = base.add(BigDecimal.valueOf(charged * 2.0));
+            base = base.add(BigDecimal.valueOf((distanceKm / 100.0) * 0.5));
             base = applyDimensionalSurcharges(base, request, charged);
             return Money.round2(base);
         } else {

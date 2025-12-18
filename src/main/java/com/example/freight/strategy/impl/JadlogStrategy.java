@@ -24,7 +24,7 @@ public class JadlogStrategy implements FreightStrategy, DeliveryTimeStrategy {
         double cubic = WeightCalculator.cubicWeight(request.height(), request.width(), request.length());
         double charged = WeightCalculator.chargedWeight(request.weight(), cubic);
 
-        if (request.deliveryMode() == DeliveryMode.FAST) {
+        if (request.deliveryMode() == DeliveryMode.NORMAL) {
             BigDecimal base = BigDecimal.valueOf(45.0);
             base = base.add(BigDecimal.valueOf(charged * 2.5));
             base = base.add(BigDecimal.valueOf((distanceKm / 100.0) * 0.4));
